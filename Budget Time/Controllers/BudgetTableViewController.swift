@@ -12,8 +12,10 @@
 import UIKit
 import UserNotifications
 import GoogleMobileAds
+import AudioToolbox
 
-class BudgetTableViewController: UITableViewController {
+class BudgetTableViewController: UIViewController {
+    
 
 
     @IBOutlet weak var totalLabel: UILabel!
@@ -27,11 +29,19 @@ class BudgetTableViewController: UITableViewController {
     
     var dates = [Date]()
     let defaults = UserDefaults.standard
+    
+    @IBOutlet weak var tableView: UITableView!
+    
 
+    var interstitial: GADInterstitial!
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         
+        interstitial = GADInterstitial(adUnitID: "ca-app-pub-5510952973561945/2639080631")
+        let request = GADRequest()
+        interstitial.load(request)
         
         //CHECK TO SEE IF THE SETTING IS SET TO ALWAYS SHOW TOTAL EXPENSES. IF IT IS TRUE, THEN IT BEING HIDDEN IS FALSE AND VICE VERSA
         let defaultsAlwaysShowExpenses = defaults.bool(forKey: "AlwaysShowTotalExpenses")
@@ -62,6 +72,7 @@ class BudgetTableViewController: UITableViewController {
             total += expense.price
             dates.append(expense.dueDate)
         }
+        //let roundedTotal = Double(round(100*total)/100)
         //THIS SORTS
         sortExpenses()
         totalLabel.text = "$\(total)"
@@ -75,6 +86,7 @@ class BudgetTableViewController: UITableViewController {
     //VIEW WILL APPEAR TO UPDATE WHEN THE EXPENSES VIEW REAPPEARS TO UPDATE ANY SETTINGS MADE
     
     override func viewDidAppear(_ animated: Bool) {
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         //CHECK TO SEE IF THE SETTING IS SET TO ALWAYS SHOW TOTAL EXPENSES. IF IT IS TRUE, THEN IT BEING HIDDEN IS FALSE AND VICE VERSA
         let defaultsAlwaysShowExpenses = defaults.bool(forKey: "AlwaysShowTotalExpenses")
         if defaultsAlwaysShowExpenses == true {
@@ -82,7 +94,12 @@ class BudgetTableViewController: UITableViewController {
         } else if defaultsAlwaysShowExpenses == false {
             totalLabel.isHidden = true
         }
+        registerLocal()
+        scheduleLocal()
     }
+    
+    
+    
     
     //UPDATE THE NO CURRENT EXPENSES LABEL
     func updateNoExpensesLabel() {
@@ -108,7 +125,10 @@ class BudgetTableViewController: UITableViewController {
             i += 1
         }
         sortExpenses()
-        tableView.reloadData()
+        if tableView != nil {
+            tableView.reloadData()
+        }
+        //tableView.reloadData()
     }
     
     @objc func registerLocal() {
@@ -121,7 +141,13 @@ class BudgetTableViewController: UITableViewController {
             } else {
                 print("NOT GRANTED")
             }
+            
         }
+        
+        
+        
+        
+        
     }
     
     @objc func scheduleLocal() {
@@ -130,13 +156,12 @@ class BudgetTableViewController: UITableViewController {
         center.removeAllPendingNotificationRequests()
         
         
-        for expense in expenses {
+        for expense in expenses {/*
+            
             if expense.dueDate > midnightToday {
-                
-                
                 let content = UNMutableNotificationContent()
                 content.title = "Expense Due Soon!"
-                content.body = "You have an expense due soon. Come see what expense it is!"
+                content.body = "You have an expense for \(expense.name) due soon! Come see the details of it!"
                 content.categoryIdentifier = "expense"
                 content.userInfo = ["customData": "fizz"]
                 content.sound = .default
@@ -155,7 +180,26 @@ class BudgetTableViewController: UITableViewController {
                 
                 
                 break
-            }
+            }*/
+            
+            let content = UNMutableNotificationContent()
+            content.title = "Expense Due Soon!"
+            content.body = "You have an expense for \(expense.name) due soon! Come see the details of it!"
+            content.categoryIdentifier = "expense"
+            content.userInfo = ["customData": "fizz"]
+            content.sound = .default
+            
+            //var dateComponents = DateComponents()
+            //dateComponents.minute = 30
+            let calendar = Calendar.current
+            let components = calendar.dateComponents([.day, .month, .year], from: expense.dueDate)
+            
+            
+            let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+            
+            
+            let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+                center.add(request)
         }
         
         
@@ -173,76 +217,10 @@ class BudgetTableViewController: UITableViewController {
     
 
     // MARK: - Table view data source
-
-    override func numberOfSections(in tableView: UITableView) -> Int {
-        // #warning Incomplete implementation, return the number of sections
-        return 1
-    }
-
-    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-       
-        return expenses.count
-        
-    }
-
-    
-    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        
-        let midnightToday = Calendar.current.startOfDay(for: Date())
-
-        let cell = tableView.dequeueReusableCell(withIdentifier: "expenseCell", for: indexPath) as! BudgetTableViewCell
-        
-        
-        // Configure the cell...
-        let expense = expenses[indexPath.row]
-        
-        
-        //IF CELL
-        if expense.dueDate < midnightToday {
-            cell.nameLabel.textColor = .red
-            cell.priceLabel.textColor = .red
-            cell.dueDateLabel.textColor = .red
-            
-        } else {
-            cell.nameLabel.textColor = .black
-            cell.priceLabel.textColor = .black
-            cell.dueDateLabel.textColor = .black
-        }
-        cell.update(with: expense)
-        cell.showsReorderControl = true
-
-        return cell
-    }
     
 
-    
-    // Override to support conditional editing of the table view.
-    
-    override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
-        // Return false if you do not want the specified item to be editable.
-        return true
-    }
-    
 
     
-    // Override to support editing the table view.
-    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
-        if editingStyle == .delete {
-            // Delete the row from the data source
-            let expense = expenses[indexPath.row]
-            expenses.remove(at: indexPath.row)
-            tableView.deleteRows(at: [indexPath], with: .fade)
-            Expense.saveToDos(expenses)
-            total -= expense.price
-            totalLabel.text = "$\(total)"
-            updateNoExpensesLabel()
-            
-        }
-    }
-    
-    override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        return 115
-    }
     
 
     /*
@@ -259,7 +237,6 @@ class BudgetTableViewController: UITableViewController {
         return true
     }
     */
-
     
     // MARK: - Navigation
 
@@ -295,13 +272,13 @@ class BudgetTableViewController: UITableViewController {
             self.tableView.reloadData()
             
         } else {
-            
             let newIndexPath = IndexPath(row: expenses.count, section: 0)
             expenses.append(expense)
             tableView.insertRows(at: [newIndexPath], with: .automatic)
             //save total
             total += expense.price
-            totalLabel.text = "$\(total)"
+            let roundedTotal = Double(round(100*total)/100)
+            totalLabel.text = "$\(roundedTotal)"
             sortExpenses()
             self.tableView.reloadData()
             
@@ -312,10 +289,102 @@ class BudgetTableViewController: UITableViewController {
         updateDatesInExpenses()
         tableView.reloadData()
         
+    }
+
+}
+
+extension BudgetTableViewController: UITableViewDelegate, UITableViewDataSource {
+    
+    
+    func numberOfSections(in tableView: UITableView) -> Int {
+        // #warning Incomplete implementation, return the number of sections
+        return 1
+    }
+
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+       
+        return expenses.count
+        
+    }
+
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        
+        let midnightToday = Calendar.current.startOfDay(for: Date())
+
+        let cell = tableView.dequeueReusableCell(withIdentifier: "expenseCell", for: indexPath) as! BudgetTableViewCell
+        
+        
+        // Configure the cell...
+        let expense = expenses[indexPath.row]
+        
+        
+        //IF CELL
+        if expense.dueDate < midnightToday {
+            cell.nameLabel.textColor = .red
+            cell.priceLabel.textColor = .red
+            cell.dueDateLabel.textColor = .red
+            
+        } else {
+            //cell.nameLabel.textColor = .black
+            //cell.priceLabel.textColor = .black
+            //cell.dueDateLabel.textColor = .black
+        }
+        cell.update(with: expense)
+        cell.showsReorderControl = true
+
+        return cell
+    }
+    
+
+    
+    // Override to support conditional editing of the table view.
+    
+    func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
+        // Return false if you do not want the specified item to be editable.
+        return true
+    }
+
+    func tableView(_ tableView: UITableView, didEndEditingRowAt indexPath: IndexPath?) {
+        //After you are done edit, delete all notifications and re-set them
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        registerLocal()
+        scheduleLocal()
+    }
+
+    
+    // Override to support editing the table view.
+    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+            // Delete the row from the data source
+            let expense = expenses[indexPath.row]
+            expenses.remove(at: indexPath.row)
+            tableView.deleteRows(at: [indexPath], with: .fade)
+            Expense.saveToDos(expenses)
+            total -= expense.price
+            let roundedTotal = Double(round(100*total)/100)
+            totalLabel.text = "$\(roundedTotal)"
+            updateNoExpensesLabel()
+            
+        }
+    }
+    
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        return 115
+    }
+    
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.impactOccurred()
+        
+        if (interstitial.isReady) {
+            interstitial.present(fromRootViewController: self)
+            print("TESTER")
+        }
         
     }
     
     
     
-
+    
 }

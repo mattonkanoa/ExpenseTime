@@ -11,12 +11,14 @@
 import UIKit
 import AudioToolbox
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, UITextFieldDelegate {
 
     @IBOutlet weak var enterPasswordLabel: UILabel!
     @IBOutlet weak var enterButton: UIButton!
     @IBOutlet weak var passwordTextfield: UITextField!
     @IBOutlet weak var nameTextField: UITextField!
+    @IBOutlet weak var imageLogo: UIImageView!
+    @IBOutlet weak var expenseTimeTitle: UILabel!
     
     let defaults = UserDefaults.standard
     
@@ -24,6 +26,11 @@ class ViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(keyBoardWillChange(notification:)), name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyBoardWillChange(notification:)), name: UIResponder.keyboardWillHideNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyBoardWillChange(notification:)), name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+        
         //HOW TO SET A VALUE IN A DEFAULT FOR A KEY
         //defaults.set("Hello", forKey: "Kanoa")
         updateNameTextField()
@@ -39,12 +46,40 @@ class ViewController: UIViewController {
             enterPasswordLabel.text = "Please Enter Your Password"
             passwordTextfield.isSecureTextEntry = true
         }
+        nameTextField.layer.cornerRadius = 15
+        nameTextField.layer.borderWidth = 0
+        passwordTextfield.layer.cornerRadius = 15
+        passwordTextfield.layer.borderWidth = 0
+        
+        nameTextField.clipsToBounds = true
+        passwordTextfield.clipsToBounds = true
         
         
         
         
         updateEnterButtonState()
        
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+    }
+    
+    //HOW TO MOVE VIEW UP WHEN PRESS KEYBOARD. INCLUDES THE INIT AS WELL AS OBSERVERS IN VIEWDIDLOAD
+    @objc func keyBoardWillChange(notification: Notification) {
+        
+        print("Keyboard will show: \(notification.name.rawValue)")
+        guard let keyboardRect = (notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue else {
+            return
+        }
+        if notification.name == UIResponder.keyboardWillShowNotification || notification.name == UIResponder.keyboardWillChangeFrameNotification {
+            view.frame.origin.y = -keyboardRect.height + (view.frame.height - enterButton.frame.origin.y) - enterButton.frame.height - 5
+        } else {
+            view.frame.origin.y = 0
+        }
+        
     }
     
     func updateEnterButtonState() {
@@ -114,9 +149,29 @@ class ViewController: UIViewController {
                 if defaultsName == nil {
                     defaults.set(nameTextField.text, forKey: "Name")
                 }
-                performSegue(withIdentifier: "toExpenses", sender: self)
+                
+                performSegue(withIdentifier:"toExpenses",sender: self)
+
+                
+                
             }
             else {
+                
+                UIButton.animate(withDuration: 0.1, delay: 0, usingSpringWithDamping: 1, initialSpringVelocity: 5, options: [.curveEaseOut], animations: {
+                    self.enterButton.frame.origin.x += 10
+                    
+                }, completion: nil)
+                UIButton.animate(withDuration: 0.1, delay: 0.1, usingSpringWithDamping: 1, initialSpringVelocity: 5, options: [.curveEaseOut], animations: {
+                    self.enterButton.frame.origin.x -= 20
+                    
+                }, completion: nil)
+                UIButton.animate(withDuration: 0.1, delay: 0.2, usingSpringWithDamping: 1, initialSpringVelocity: 5, options: [.curveEaseOut], animations: {
+                    self.enterButton.frame.origin.x += 10
+                    
+                }, completion: nil)
+                
+                
+                
                 AudioServicesPlayAlertSound(SystemSoundID(kSystemSoundID_Vibrate))
                 //THIS CODE MAKES SMALL VIBRATIONS
                 //let generator = UIImpactFeedbackGenerator(style: .heavy)

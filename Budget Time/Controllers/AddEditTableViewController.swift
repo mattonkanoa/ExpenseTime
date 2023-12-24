@@ -15,7 +15,6 @@ class AddEditTableViewController: UITableViewController, UITextFieldDelegate {
     
     
     
-    
     @IBOutlet weak var priceTextField: UITextField!
     @IBOutlet weak var nameTextField: UITextField!
     @IBOutlet weak var saveButton: UIBarButtonItem!
@@ -40,10 +39,15 @@ class AddEditTableViewController: UITableViewController, UITextFieldDelegate {
     var methodOfPayment: String = ""
     var recurring: Bool = true
     
+    var dueDatePickerHeightClosed = true
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
         setupTextFields()
+       
+        
+        
     
         //SET THE MINIMUM DATE TO SET A DUEDATE BE TODAY
         let midnightToday = Calendar.current.startOfDay(for: Date())
@@ -101,6 +105,8 @@ class AddEditTableViewController: UITableViewController, UITextFieldDelegate {
         
         
     }
+    
+   
     
     
     //TOOLBAR FOR KEYBOARDS TO REMOVE THEM (DONE BUTTON)
@@ -173,15 +179,25 @@ class AddEditTableViewController: UITableViewController, UITextFieldDelegate {
             dueDatePickerView.datePickerMode = .date
             self.tableView.reloadData()
         }
+        if indexPath == dueDateIndex {
+            let frame = tableView.rectForRow(at: dueDatePickerIndex)
+            if frame.size.height == 0 {
+                dueDatePickerHeightClosed = false
+            } else if frame.size.height == 145 {
+                dueDatePickerHeightClosed = true
+            }
+        }
+        
     }
     
     override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        if indexPath == methodOfPaymentIndex {
-            return 45
-        } else if indexPath == dueDatePickerIndex{
-            return 175
-        } else {
-            return 45
+        if (indexPath == dueDatePickerIndex) && (dueDatePickerHeightClosed == true){
+            return 0
+        } else if (indexPath == dueDatePickerIndex) && (dueDatePickerHeightClosed == false) {
+            return 145
+        }
+        else {
+            return 60
         }
     }
     
@@ -260,8 +276,10 @@ class AddEditTableViewController: UITableViewController, UITextFieldDelegate {
         let password = passwordTextField?.text
         let methodOfPay = methodOfPayment
         let isRecurring = recurring
+        let priceAsDouble = (price as NSString).doubleValue
         
-        expense = Expense(name: name, dueDate: dueDate, price: (price as NSString).doubleValue, userNameEmail: userNameEmail, password: password, methodOfPayment: methodOfPay, recurring: recurring)
+        
+        expense = Expense(name: name, dueDate: dueDate, price: priceAsDouble, userNameEmail: userNameEmail, password: password, methodOfPayment: methodOfPay, recurring: recurring)
         
         
     }

@@ -41,7 +41,7 @@ struct Expense: Codable {
         let expense1 = Expense(name: "Expense 1", dueDate: Date(), price: 0, userNameEmail: nil, password: nil, methodOfPayment: "None", recurring: true)
         let expense2 = Expense(name: "Expense 2", dueDate: Date(), price: 0, userNameEmail: nil, password: nil, methodOfPayment: "None", recurring: true)
         
-        return [expense1, expense2]
+        return []
     }
     
     static let dueDateFormatter: DateFormatter = {
@@ -52,17 +52,5 @@ struct Expense: Codable {
         
     }()
     
-    
-    
-    
-    /*
-    init(name: String, dueDate: String, price: Double) {
-        self.name = name
-        self.dueDate = dueDate
-        self.price = price
-    }*/
-    
-    
-    
-    
+
 }

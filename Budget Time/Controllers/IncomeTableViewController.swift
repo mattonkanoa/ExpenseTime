@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import GoogleMobileAds
 
 class IncomeTableViewController: UITableViewController, UIPickerViewDelegate, UIPickerViewDataSource {
     
@@ -85,8 +86,15 @@ class IncomeTableViewController: UITableViewController, UIPickerViewDelegate, UI
     "West Virginia",
     "Wyoming"]
 
+    var interstitial: GADInterstitial!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        interstitial = GADInterstitial(adUnitID: "ca-app-pub-5510952973561945/3233142856")
+        let request = GADRequest()
+        interstitial.load(request)
+        
         setupTextFields()
         self.statePickerView.delegate = self
         self.statePickerView.dataSource = self
@@ -98,6 +106,11 @@ class IncomeTableViewController: UITableViewController, UIPickerViewDelegate, UI
             //statePickerView.value(forKey: income.state)
         }
         updateSaveButtonState()
+        
+        if (interstitial.isReady) {
+            interstitial.present(fromRootViewController: self)
+            print("TESTER")
+        }
 
         
         
@@ -202,6 +215,7 @@ class IncomeTableViewController: UITableViewController, UIPickerViewDelegate, UI
         let incomeAfterTaxes = (((totalIncome as NSString).doubleValue) * stateIncomePercent[stateResidingIn]!) / 100
         
         income = Income(income: incomeAfterTaxes , state: stateResidingIn)
+        
     }
     
 
